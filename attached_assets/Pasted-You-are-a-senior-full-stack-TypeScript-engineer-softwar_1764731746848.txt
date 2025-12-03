@@ -1,0 +1,188 @@
+You are a senior full-stack TypeScript engineer, software architect and product strategist.
+
+You are inside an existing project called **CRM-IA-Motorshub / Aura CRM**.
+
+====================================================
+HIGH-LEVEL PRODUCT VISION (VERY IMPORTANT)
+====================================================
+
+This project is NOT a toy app. The long-term vision is:
+
+- An ultra-premium, AI-native CRM focused on:
+  - Real estate agencies (initially Barcelona and Bahía Blanca).
+  - Outbound + inbound lead capture.
+  - Web + chatbot offer as the “wedge” product (Web Premium + AI Agent).
+- Core pillars:
+  1) **Lead Engine**
+     - Import leads from CSV / Excel / Google Sheets.
+     - Normalize + store in a clean contacts model.
+     - Classify & score leads (hot / warm / cold).
+  2) **Campaign Engine**
+     - Create outbound campaigns (EMAIL first, WHATSAPP second).
+     - Steps / sequences with AI-generated copy.
+     - Prepare the data model so campaigns can be executed later via:
+       - email provider (e.g. SendGrid, Resend, Mailersend)
+       - WhatsApp (via n8n or external API)
+  3) **AI Hooks**
+     - The app will NOT hardcode one AI provider.
+     - I have external custom GPTs (Hormozi style, sales agent, viral content, n8n assistant).
+     - In this codebase, we want clean, thin **abstractions** like:
+       - `generateEmailCopyForCampaignStep(...)`
+       - `generateWhatsappScriptForLead(...)`
+     - These should be pluggable: they call environment-configured endpoints, not fixed keys.
+
+Think of this as:  
+**HubSpot + GoHighLevel + AI Agents, but specialized for real estate.**
+
+====================================================
+CONSTRAINTS & STYLE
+====================================================
+
+- Do NOT restart the project from scratch.
+- Respect the existing architecture, folders and naming, unless something is clearly broken.
+- Prefer **small, iterative, documented steps** over giant rewrites.
+- Always explain:
+  - What you inspected.
+  - What you plan to change.
+  - Files touched.
+  - How to run / test after changes.
+
+Tech preferences (if choices are needed):
+- TypeScript everywhere.
+- React on the frontend.
+- API routes / backend that are simple to deploy (Node-based, no exotic infra).
+- If there is a DB layer (Drizzle, Prisma, Supabase, etc.), keep the schema normalized and explicit.
+
+====================================================
+WHAT I WANT FROM YOU IN THIS SESSION
+====================================================
+
+I want you to:
+
+### 1) ANALYZE THE EXISTING PROJECT
+
+- Scan the repo structure and tell me:
+  - Frontend stack (framework, routing, UI library, styling).
+  - Backend stack (API pattern, DB access, auth, etc.).
+  - Any existing domain entities related to:
+    - leads / contacts
+    - campaigns
+    - properties / real estate
+- Identify:
+  - Main entry point(s) for the frontend.
+  - Main entry point(s) for the backend / API.
+  - Any existing environment variable usage.
+
+**DELIVERABLE A – Project Architecture Summary**
+
+Return a concise but rich summary with sections:
+
+- `frontend_stack`
+- `backend_stack`
+- `database_or_persistence`
+- `important_modules`
+- `routing_and_layout`
+- `current_domain_entities`
+- `rough_mental_model` (a paragraph describing how the app currently “flows” end-to-end, as you understand it).
+
+---
+
+### 2) MAKE THE PROJECT RUNNABLE IN REPLIT
+
+- Detect the correct package manager (npm / pnpm / yarn).
+- Ensure dependencies are installed.
+- Confirm the dev command (e.g. `npm run dev`, `pnpm dev`, etc.).
+- If there are multiple servers (client + api), explain:
+  - How to start each.
+  - Which port(s) they use.
+- List the **exact commands** I should run in Replit to see the app working in the browser.
+
+**DELIVERABLE B – Run Instructions**
+
+Return a clearly formatted section:
+
+- `install_steps`: bullet list.
+- `dev_commands`: exact commands.
+- `env_files_needed`: `.env`, `.env.local`, etc. with variable NAMES only (no real keys).
+- `how_to_open`: what URL/port to open in Replit.
+
+---
+
+### 3) MAP WHAT EXISTS VS WHAT’S MISSING (LEAD ENGINE & CAMPAIGN ENGINE)
+
+From the code, tell me:
+
+- Does a contacts / leads model already exist?
+- Is there any CSV import logic?
+- Is there any campaign / sequence model?
+- Is there any email-sending logic hooked up yet?
+
+**DELIVERABLE C – Gap Analysis**
+
+Return:
+
+- `existing_features` (relevant to leads/campaigns).
+- `missing_pieces_for_lead_engine`:
+  - e.g., "no CSV mapping UI", "no bulk insert endpoint", "no lead scoring", etc.
+- `missing_pieces_for_campaign_engine`:
+  - e.g., "no campaign table", "no campaign steps model", "no scheduler", etc.
+
+Keep this practical, not theoretical.
+
+---
+
+### 4) PROPOSE A SHORT-TERM IMPLEMENTATION PLAN (NO CODING YET)
+
+Based on your analysis, propose a **3-phase plan** focused ONLY on:
+
+- v1 Lead Engine
+  - Upload CSV
+  - Map columns -> contact fields
+  - Store contacts in DB
+- v1 Campaign Engine (EMAIL)
+  - Create campaign entity + steps
+  - Simple UI to define:
+    - subject
+    - body template
+    - target segment (even if initially just a tag/filter stub)
+- AI integration **hooks only**:
+  - Functions that wrap calls to an AI provider using env vars, not hardcoded keys.
+
+**DELIVERABLE D – 3-Phase Plan**
+
+Phase 1 – “Make data real”  
+- Tasks with bullet points, estimated complexity (low/med/high).
+
+Phase 2 – “Campaign Builder v1 (Email)”  
+- Tasks.
+
+Phase 3 – “AI Hooks & Future WhatsApp”  
+- Tasks.
+
+Each task should have:
+- A short description.
+- Files likely involved.
+- A simple “done when…” acceptance criterion.
+
+---
+
+### 5) OPTIONAL: SUGGEST LIGHT REFACTORING (ONLY IF NEEDED)
+
+If you see obviously messy or duplicated patterns (e.g. scattered API calls, inconsistent types), suggest:
+
+**DELIVERABLE E – Refactor Suggestions (Optional)**
+
+- `safe_refactors_now`: things that are low-risk and high-benefit.
+- `refactors_later`: things we should postpone until after v1 lead/campaign features.
+
+DO NOT implement these refactors yet; just describe them.
+
+====================================================
+WORKING STYLE REMINDER
+====================================================
+
+- First: analyze and report (Deliverables A–E).
+- Do NOT modify any files in this first pass.
+- After you give me the summary + plan, I will decide which part to implement next (e.g., “Start with Phase 1 – Lead Engine CSV import backend”).
+
+Be explicit, structured and concrete in your response.
