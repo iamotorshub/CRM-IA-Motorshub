@@ -71,19 +71,10 @@ const navItems: NavItem[] = [
       { title: "Web Portal", href: "/properties/portal" },
     ],
   },
-  {
-    title: "Automations",
-    icon: Zap,
-    children: [
-      { title: "n8n Flows", href: "/automations/n8n" },
-      { title: "Make Scenarios", href: "/automations/make" },
-    ],
-  },
+  { title: "Campaigns", icon: CalendarDays, href: "/campaigns" },
+  { title: "Buyer Intent", icon: Globe, href: "/buyer-intent" },
+  { title: "Automations", icon: Zap, href: "/automations" },
   { title: "AI Agents", icon: Bot, href: "/ai-agents" },
-  { title: "Content", icon: CalendarDays, href: "/content" },
-  { title: "Library", icon: FolderOpen, href: "/library" },
-  { title: "Quotes", icon: FileText, href: "/quotes" },
-  { title: "Web Builder", icon: Globe, href: "/web-builder" },
   { title: "Reports", icon: BarChart3, href: "/reports" },
 ];
 
@@ -193,18 +184,7 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.slice(0, 5).map((item) => (
-                <NavMenuItem key={item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.slice(5).map((item) => (
+              {navItems.map((item) => (
                 <NavMenuItem key={item.title} item={item} />
               ))}
             </SidebarMenu>
