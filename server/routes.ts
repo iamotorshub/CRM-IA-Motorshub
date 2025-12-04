@@ -1,12 +1,26 @@
-
 import type { Express, Request, Response } from "express";
 import type { Server as HTTPServer } from "http";
 import { db } from "../db";
-import { contacts, campaigns, campaignSteps, whatsappLogs } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { 
+  contacts, campaigns, campaignSteps, whatsappLogs,
+  buyerIntentScans, buyerIntentSignals, buyerIntentHistory,
+  automations, automationActions, automationLogs 
+} from "../shared/schema";
+import { eq, desc } from "drizzle-orm";
 import { runLLM } from "./ai/llmRouter";
 import { getAgentPrompt } from "./ai/agents/hormozi";
 import { sendWhatsAppMessage } from "./whatsapp/ultraMsgClient";
+import { crawlDomain } from "./buyerIntent/crawler";
+import { gatherAllSignals } from "./buyerIntent/signals";
+import { calculateIntentScore } from "./buyerIntent/scoring";
+import { generateInsights } from "./buyerIntent/insights";
+import { loadAutomations, getAutomationById, createAutomation, updateAutomationStatus, deleteAutomation } from "./automation/registry";
+import { executeAutomation } from "./automation/executor";
+import { TRIGGER_DEFINITIONS, matchTrigger, createTriggerEvent } from "./automation/triggers";
+import { ACTION_DEFINITIONS } from "./automation/executor";
+import { generateAutomationBlueprint, generateN8nBlueprint, generateMakeBlueprint } from "./automation/builder";
+import { listN8nWorkflows } from "./automation/n8nClient";
+import { listMakeScenarios } from "./automation/makeClient";
 
 export async function registerRoutes(httpServer: HTTPServer, app: Express) {
   // Contacts API
@@ -194,8 +208,6 @@ export async function registerRoutes(httpServer: HTTPServer, app: Express) {
 
   app.post("/api/whatsapp/webhook", async (req: Request, res: Response) => {
     try {
-      const { id, status } = req.body;
-      // Update log status based on webhook data
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -308,6 +320,399 @@ Status: hot/warm/cold`;
       const enriched = JSON.parse(result.reply);
       
       res.json(enriched);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== BUYER INTENT API ====================
+  
+  app.get("/api/buyer-intent/scans", async (_req: Request, res: Response) => {
+    try {
+      const scans = await db.select().from(buyerIntentScans).orderBy(desc(buyerIntentScans.createdAt));
+      res.json(scans);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/buyer-intent/scans/:id", async (req: Request, res: Response) => {
+    try {
+      const scan = await db.select().from(buyerIntentScans).where(eq(buyerIntentScans.id, parseInt(req.params.id)));
+      if (!scan.length) {
+        return res.status(404).json({ error: "Scan not found" });
+      }
+      
+      const signals = await db.select().from(buyerIntentSignals).where(eq(buyerIntentSignals.domain, scan[0].domain));
+      const history = await db.select().from(buyerIntentHistory).where(eq(buyerIntentHistory.domain, scan[0].domain));
+      
+      res.json({ ...scan[0], signals, history });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/buyer-intent/scan", async (req: Request, res: Response) => {
+    try {
+      const { domain } = req.body;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "Domain is required" });
+      }
+
+      const crawlerResult = await crawlDomain(domain);
+      const signals = await gatherAllSignals(domain);
+      const scoring = calculateIntentScore(crawlerResult, signals);
+      const insights = await generateInsights({
+        domain,
+        title: crawlerResult.title,
+        description: crawlerResult.description,
+        hasContactForm: crawlerResult.hasContactForm,
+        hasChat: crawlerResult.hasChat,
+        hasSocialLinks: crawlerResult.hasSocialLinks,
+        technology: crawlerResult.technology,
+        signals,
+        totalScore: scoring.totalScore
+      });
+
+      const newScan = await db.insert(buyerIntentScans).values({
+        domain,
+        html: crawlerResult.html.substring(0, 10000),
+        score: scoring.totalScore,
+        insights: JSON.stringify(insights)
+      }).returning();
+
+      for (const signal of signals) {
+        await db.insert(buyerIntentSignals).values({
+          domain,
+          source: signal.source,
+          data: signal.data,
+          score: signal.score
+        });
+      }
+
+      res.json({
+        scan: newScan[0],
+        crawlerResult,
+        signals,
+        scoring,
+        insights
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/buyer-intent/bulk-scan", async (req: Request, res: Response) => {
+    try {
+      const { domains } = req.body;
+      
+      if (!domains || !Array.isArray(domains)) {
+        return res.status(400).json({ error: "Domains array is required" });
+      }
+
+      const results = [];
+      for (const domain of domains.slice(0, 10)) {
+        try {
+          const crawlerResult = await crawlDomain(domain);
+          const signals = await gatherAllSignals(domain);
+          const scoring = calculateIntentScore(crawlerResult, signals);
+
+          const newScan = await db.insert(buyerIntentScans).values({
+            domain,
+            score: scoring.totalScore,
+            insights: scoring.recommendation
+          }).returning();
+
+          results.push({
+            domain,
+            score: scoring.totalScore,
+            intent: scoring.intent,
+            success: true
+          });
+        } catch (error: any) {
+          results.push({
+            domain,
+            score: 0,
+            intent: "error",
+            success: false,
+            error: error.message
+          });
+        }
+      }
+
+      res.json({ results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/buyer-intent/signals/:domain", async (req: Request, res: Response) => {
+    try {
+      const signals = await db.select().from(buyerIntentSignals).where(eq(buyerIntentSignals.domain, req.params.domain));
+      res.json(signals);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/buyer-intent/scans/:id", async (req: Request, res: Response) => {
+    try {
+      await db.delete(buyerIntentScans).where(eq(buyerIntentScans.id, parseInt(req.params.id)));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== AUTOMATION API ====================
+  
+  app.get("/api/automations", async (_req: Request, res: Response) => {
+    try {
+      const allAutomations = await loadAutomations();
+      res.json(allAutomations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/automations/:id", async (req: Request, res: Response) => {
+    try {
+      const automation = await getAutomationById(parseInt(req.params.id));
+      if (!automation) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+      res.json(automation);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/automations", async (req: Request, res: Response) => {
+    try {
+      const { name, description, triggerType, actions } = req.body;
+      
+      if (!name || !triggerType) {
+        return res.status(400).json({ error: "Name and triggerType are required" });
+      }
+
+      const automation = await createAutomation({
+        name,
+        description,
+        triggerType,
+        actions: actions || []
+      });
+
+      res.json(automation);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/automations/:id", async (req: Request, res: Response) => {
+    try {
+      const { name, description, triggerType, isActive } = req.body;
+      
+      const updated = await db
+        .update(automations)
+        .set({ name, description, triggerType, isActive })
+        .where(eq(automations.id, parseInt(req.params.id)))
+        .returning();
+
+      res.json(updated[0]);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/automations/:id/toggle", async (req: Request, res: Response) => {
+    try {
+      const { isActive } = req.body;
+      await updateAutomationStatus(parseInt(req.params.id), isActive);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/automations/:id", async (req: Request, res: Response) => {
+    try {
+      await deleteAutomation(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/automations/:id/actions", async (req: Request, res: Response) => {
+    try {
+      const { actionType, config } = req.body;
+      
+      const newAction = await db.insert(automationActions).values({
+        automationId: parseInt(req.params.id),
+        actionType,
+        config
+      }).returning();
+
+      res.json(newAction[0]);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/automations/:automationId/actions/:actionId", async (req: Request, res: Response) => {
+    try {
+      await db.delete(automationActions).where(eq(automationActions.id, parseInt(req.params.actionId)));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/automations/:id/test", async (req: Request, res: Response) => {
+    try {
+      const automation = await getAutomationById(parseInt(req.params.id));
+      if (!automation) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+
+      const testPayload = req.body.payload || { test: true, timestamp: new Date().toISOString() };
+      
+      const results = await executeAutomation(
+        automation.id,
+        automation.actions,
+        testPayload
+      );
+
+      res.json({ results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/automations/:id/logs", async (req: Request, res: Response) => {
+    try {
+      const logs = await db
+        .select()
+        .from(automationLogs)
+        .where(eq(automationLogs.automationId, parseInt(req.params.id)))
+        .orderBy(desc(automationLogs.createdAt));
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/automation-triggers", async (_req: Request, res: Response) => {
+    res.json(TRIGGER_DEFINITIONS);
+  });
+
+  app.get("/api/automation-actions", async (_req: Request, res: Response) => {
+    res.json(ACTION_DEFINITIONS);
+  });
+
+  app.post("/api/automations/generate", async (req: Request, res: Response) => {
+    try {
+      const { description } = req.body;
+      
+      if (!description) {
+        return res.status(400).json({ error: "Description is required" });
+      }
+
+      const blueprint = await generateAutomationBlueprint(description);
+      res.json(blueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/automations/:id/export/n8n", async (req: Request, res: Response) => {
+    try {
+      const automation = await getAutomationById(parseInt(req.params.id));
+      if (!automation) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+
+      const n8nBlueprint = generateN8nBlueprint({
+        name: automation.name,
+        description: automation.description || "",
+        triggerType: automation.triggerType,
+        actions: automation.actions.map(a => ({
+          actionType: a.actionType,
+          config: a.config || {}
+        }))
+      });
+
+      res.json(n8nBlueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/automations/:id/export/make", async (req: Request, res: Response) => {
+    try {
+      const automation = await getAutomationById(parseInt(req.params.id));
+      if (!automation) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+
+      const makeBlueprint = generateMakeBlueprint({
+        name: automation.name,
+        description: automation.description || "",
+        triggerType: automation.triggerType,
+        actions: automation.actions.map(a => ({
+          actionType: a.actionType,
+          config: a.config || {}
+        }))
+      });
+
+      res.json(makeBlueprint);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/integrations/n8n/workflows", async (_req: Request, res: Response) => {
+    try {
+      const result = await listN8nWorkflows();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/integrations/make/scenarios", async (_req: Request, res: Response) => {
+    try {
+      const result = await listMakeScenarios();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/webhooks/automation-trigger", async (req: Request, res: Response) => {
+    try {
+      const { triggerType, payload } = req.body;
+      
+      const allAutomations = await loadAutomations();
+      const event = createTriggerEvent(triggerType, payload);
+      const matchingAutomations = matchTrigger(event, allAutomations);
+      
+      const results = [];
+      for (const automation of matchingAutomations) {
+        const executionResults = await executeAutomation(
+          automation.id,
+          automation.actions,
+          payload
+        );
+        results.push({
+          automationId: automation.id,
+          automationName: automation.name,
+          results: executionResults
+        });
+      }
+
+      res.json({ triggered: matchingAutomations.length, results });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

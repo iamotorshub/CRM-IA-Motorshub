@@ -1,9 +1,7 @@
-
 import { db } from "../db";
-import { contacts, campaigns, campaignSteps } from "../shared/schema";
+import { contacts, campaigns, campaignSteps, whatsappLogs } from "../shared/schema";
 import { eq } from "drizzle-orm";
 
-// Contact methods
 export async function getContacts() {
   return await db.select().from(contacts);
 }
@@ -33,7 +31,6 @@ export async function bulkCreateContacts(rows: Array<typeof contacts.$inferInser
   return await db.insert(contacts).values(rows).returning();
 }
 
-// Campaign methods
 export async function getCampaigns() {
   return await db.select().from(campaigns);
 }
@@ -58,7 +55,6 @@ export async function deleteCampaign(id: number) {
   return result[0] || null;
 }
 
-// Campaign Step methods
 export async function getStepsForCampaign(campaignId: number) {
   return await db.select().from(campaignSteps).where(eq(campaignSteps.campaignId, campaignId));
 }
@@ -78,9 +74,18 @@ export async function deleteStep(id: number) {
   return result[0] || null;
 }
 
-export async function reorderSteps(campaignId: number, steps: Array<{ id: number; order: number }>) {
+export async function reorderSteps(campaignId: number, steps: Array<{ id: number; stepOrder: number }>) {
   for (const step of steps) {
-    await db.update(campaignSteps).set({ order: step.order }).where(eq(campaignSteps.id, step.id));
+    await db.update(campaignSteps).set({ stepOrder: step.stepOrder }).where(eq(campaignSteps.id, step.id));
   }
   return await getStepsForCampaign(campaignId);
+}
+
+export async function createWhatsAppLog(data: typeof whatsappLogs.$inferInsert) {
+  const result = await db.insert(whatsappLogs).values(data).returning();
+  return result[0];
+}
+
+export async function getWhatsAppLogsForContact(contactId: number) {
+  return await db.select().from(whatsappLogs).where(eq(whatsappLogs.contactId, contactId));
 }
