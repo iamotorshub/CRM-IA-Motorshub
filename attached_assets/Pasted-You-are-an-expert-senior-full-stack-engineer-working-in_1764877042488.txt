@@ -1,0 +1,228 @@
+You are an expert senior full-stack engineer working inside my existing CRM project.
+Implement PHASE 5 (Buyer Intent Engine FULL) and PHASE 6 (Automation Engine FULL) exactly as specified.
+
+IMPORTANT RULES:
+- DO NOT modify or overwrite existing modules: WhatsApp Engine, LLM Router, AI Agents, Campaign Editor, Contacts, Deals, Properties, Auth, AppShell logic.
+- Only ADD new modules, new routes, new pages, and append to the sidebar.
+- Follow the file structure rigorously.
+- Use Drizzle for all database tables.
+- Use React Query for client data fetching.
+- All pages must be fully functional.
+- Keep all code modular under new folders.
+
+======================================================
+PHASE 5 — BUYER INTENT ENGINE (FULL VERSION)
+======================================================
+
+====================================
+1) DATABASE — Add new tables
+====================================
+Modify shared/schema.ts and add:
+
+buyer_intent_scans:
+- id serial pk
+- domain text
+- html text
+- screenshotUrl text nullable
+- score integer
+- insights text
+- createdAt timestamp default now
+
+buyer_intent_signals:
+- id serial pk
+- domain text
+- source text  // "instagram", "facebook_ads", "google_business", "listings", etc
+- data json
+- score integer
+- createdAt timestamp default now
+
+buyer_intent_history:
+- id serial pk
+- domain text
+- diff text
+- createdAt timestamp default now
+
+====================================
+2) BACKEND — Buyer Intent Service
+====================================
+Create folder: server/buyerIntent/
+
+Files:
+- crawler.ts — fetch HTML, parse metadata, detect branding, calls IA for analysis
+- signals.ts — FB Ads Library scraping (public endpoints), Google Business API integration, IG presence checker
+- scoring.ts — aggregate signals + crawler insights into 0–100 score
+- insights.ts — LLM-based content analysis + recommendations
+
+====================================
+3) ROUTES — Buyer Intent API
+====================================
+Edit server/routes.ts and append new routes:
+
+POST /api/buyer-intent/scan
+Body: { domain }
+Process:
+- fetch HTML
+- extract metadata
+- call IA for analysis
+- call signals engine
+- compute score
+- store in buyer_intent_scans + buyer_intent_signals
+Return JSON with full structured response.
+
+POST /api/buyer-intent/batch
+Body: { domains: [] }
+Run scan for each.
+
+GET /api/buyer-intent/:domain
+Return latest scan + signals + insights.
+
+GET /api/buyer-intent/:domain/signals
+Return list of signals.
+
+====================================
+4) FRONTEND — New Buyer Intent Page
+====================================
+Create file:
+client/src/pages/BuyerIntent.tsx
+
+Features:
+- Search input: domain
+- Button: “Scan Website”
+- Display:
+  - ScoreCard (overall intent score)
+  - InsightsCard (LLM recommendations)
+  - SignalsTable (list of signals)
+  - WebsitePreview (iframe or screenshotUrl)
+- React Query for data loading
+
+Create folder:
+client/src/components/buyer-intent/
+
+Components:
+- ScoreCard.tsx
+- InsightsCard.tsx
+- SignalsTable.tsx
+- WebsitePreview.tsx
+
+====================================
+5) SIDEBAR — Add Buyer Intent link
+====================================
+Modify client/src/components/layout/AppSidebar.tsx
+Add menu item:
+{ label: "Buyer Intent", href: "/buyer-intent", icon: <YourIconHere /> }
+
+======================================================
+PHASE 6 — AUTOMATION ENGINE (FULL VERSION)
+======================================================
+
+====================================
+1) DATABASE — Add automation tables
+====================================
+Append to shared/schema.ts:
+
+automations:
+- id serial pk
+- name text
+- description text
+- triggerType text  // "contact.created", "intent.high", "whatsapp.received", etc
+- isActive boolean
+- createdAt timestamp default now
+
+automation_actions:
+- id serial pk
+- automationId integer references automations.id
+- actionType text // "send_whatsapp", "send_email", "webhook", "run_n8n", "run_make"
+- config json
+- createdAt timestamp default now
+
+automation_logs:
+- id serial pk
+- automationId integer
+- status text
+- message text
+- createdAt timestamp default now
+
+====================================
+2) BACKEND — Automation Engine
+====================================
+Create folder: server/automation/
+
+Files:
+- registry.ts — load automations + actions
+- triggers.ts — matching system for events
+- executor.ts — runs actions: WhatsApp, Email, Webhook, n8n, Make
+- builder.ts — IA flow builder (via LLM Router)
+- n8nClient.ts — POST workflow to n8n API
+- makeClient.ts — POST scenario to Make API
+
+====================================
+3) ROUTES — Automation API
+====================================
+In server/routes.ts append:
+
+POST /api/automation/generate
+Body: { description }
+Use LLM to generate an automation blueprint (JSON nodes).
+
+POST /api/automation/create
+Body: { name, triggerType, actions }
+Insert into automations + automation_actions.
+
+POST /api/automation/run
+Body: { automationId, payload }
+Execute trigger + actions.
+
+POST /api/automation/n8n
+Body: { blueprint }
+Create workflow in n8n.
+
+POST /api/automation/make
+Body: { blueprint }
+Create scenario in Make.
+
+GET /api/automation
+Return list of automations.
+
+====================================
+4) FRONTEND — Automation Page
+====================================
+Create file:
+client/src/pages/Automation.tsx
+
+Features:
+- List automations
+- Create Automation button
+- Trigger selector
+- Add Action modal
+- AI “Generate Flow” button → calls /api/automation/generate
+- JSON preview of automation
+- Logs viewer
+
+Create folder:
+client/src/components/automation/
+
+Components:
+- AutomationList.tsx
+- AutomationEditor.tsx
+- TriggerSelector.tsx
+- ActionSelector.tsx
+- FlowPreview.tsx
+- AutomationLogs.tsx
+
+====================================
+5) SIDEBAR — Add Automation link
+====================================
+Modify client/src/components/layout/AppSidebar.tsx
+Add:
+{ label: "Automation", href: "/automation", icon: <YourIconHere /> }
+
+======================================================
+FINISHING INSTRUCTIONS
+======================================================
+
+After implementing everything, respond ONLY:
+“PHASE 5 + PHASE 6 COMPLETE”
+
+Do NOT list diffs.
+Do NOT overwrite unrelated modules.
+Do NOT modify WhatsApp Engine, Campaigns, Contacts, Deals, Properties, LLM Router.
