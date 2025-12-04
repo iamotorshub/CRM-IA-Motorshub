@@ -3,7 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { ThemeProvider } from "@/lib/theme";
 import AppSidebar from "@/components/layout/AppSidebar";
 import TopNavbar from "@/components/layout/TopNavbar";
 import NotFound from "./pages/not-found";
@@ -48,20 +49,22 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <SidebarInset className="flex flex-col flex-1 overflow-hidden">
-              <TopNavbar />
-              <main className="flex-1 overflow-auto p-6">
-                <Router />
-              </main>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+                <TopNavbar />
+                <main className="flex-1 overflow-auto p-6">
+                  <Router />
+                </main>
+              </SidebarInset>
+            </div>
+          </SidebarProvider>
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -23,6 +23,10 @@ export interface AutomationAction {
 export async function loadAutomations(): Promise<Automation[]> {
   const allAutomations = await db.select().from(automations);
   
+  if (!allAutomations || allAutomations.length === 0) {
+    return [];
+  }
+  
   const result: Automation[] = [];
   
   for (const automation of allAutomations) {
@@ -33,7 +37,7 @@ export async function loadAutomations(): Promise<Automation[]> {
     
     result.push({
       ...automation,
-      actions
+      actions: actions || []
     });
   }
   

@@ -330,8 +330,9 @@ Status: hot/warm/cold`;
   app.get("/api/buyer-intent/scans", async (_req: Request, res: Response) => {
     try {
       const scans = await db.select().from(buyerIntentScans).orderBy(desc(buyerIntentScans.createdAt));
-      res.json(scans);
+      res.json(scans || []);
     } catch (error: any) {
+      console.error("Error fetching buyer intent scans:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -470,8 +471,9 @@ Status: hot/warm/cold`;
   app.get("/api/automations", async (_req: Request, res: Response) => {
     try {
       const allAutomations = await loadAutomations();
-      res.json(allAutomations);
+      res.json(allAutomations || []);
     } catch (error: any) {
+      console.error("Error fetching automations:", error);
       res.status(500).json({ error: error.message });
     }
   });
