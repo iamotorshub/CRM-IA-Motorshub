@@ -1,0 +1,82 @@
+You already implemented the full WhatsApp Engine backend (UltraMsg client, routes, whatsapp_logs table, SendWhatsAppModal, WhatsAppLogs). 
+Now complete PHASE 4 by integrating the missing UI connections.
+
+IMPORTANT RULES:
+- Modify ONLY the files listed below.
+- Do NOT alter LLM router, AI agents, existing routes, or backend logic.
+- Do NOT overwrite unrelated CRM modules.
+- Avoid recreating files already created.
+- Keep all changes strictly minimal and additive.
+
+===========================================
+FILE 1 — client/src/components/crm/ContactsList.tsx
+===========================================
+
+Goal: Add a “WhatsApp” button in each row that opens SendWhatsAppModal.
+
+Steps:
+1. Import:
+   import SendWhatsAppModal from "./SendWhatsAppModal";
+
+2. Add React state:
+   const [selectedContact, setSelectedContact] = useState(null);
+
+3. In the action column for each row, add:
+   <button
+     className="text-green-600 hover:underline"
+     onClick={() => setSelectedContact(contact)}
+   >
+     WhatsApp
+   </button>
+
+4. At bottom of JSX:
+   {selectedContact && (
+     <SendWhatsAppModal
+       contact={selectedContact}
+       onClose={() => setSelectedContact(null)}
+     />
+   )}
+
+===========================================
+FILE 2 — client/src/pages/CampaignEditor.tsx
+===========================================
+
+Goal: Add “Send Test WhatsApp” for each step.
+
+Steps:
+1. Import SendWhatsAppModal:
+   import SendWhatsAppModal from "../components/crm/SendWhatsAppModal";
+
+2. Add state:
+   const [testStep, setTestStep] = useState(null);
+
+3. For each step, add button:
+   <button
+     className="text-green-600 hover:underline ml-2"
+     onClick={() => setTestStep(step)}
+   >
+     Send Test WhatsApp
+   </button>
+
+4. At bottom render modal:
+   {testStep && (
+     <SendWhatsAppModal
+       messageTemplate={testStep.body}
+       onClose={() => setTestStep(null)}
+     />
+   )}
+
+===========================================
+FILE 3 — client/src/components/crm/WhatsAppLogs.tsx
+===========================================
+
+Goal: Integrate WhatsAppLogs into contact view.
+
+Create a lightweight container component usage example:
+<WhatsAppLogs contactId={contact.id} />
+
+===========================================
+
+DO NOT modify anything else.
+When finished, respond:
+“PHASE 4 UI INTEGRATION COMPLETE”
