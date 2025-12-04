@@ -4,6 +4,12 @@ import ContactsList from "@/components/crm/ContactsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Search, UserPlus, Filter } from "lucide-react";
+import CSVImportModal from "@/components/crm/CSVImportModal";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 const contactStats = [
   { label: "Total Contacts", value: 284, icon: Users },
@@ -13,6 +19,13 @@ const contactStats = [
 ];
 
 export default function Contacts() {
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleImportComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ["contacts"] });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -21,7 +34,7 @@ export default function Contacts() {
           <p className="text-muted-foreground">Manage your leads and contacts</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" data-testid="button-import-contacts">
+          <Button variant="outline" className="gap-2" data-testid="button-import-contacts" onClick={() => setIsImportModalOpen(true)}>
             <Upload className="h-4 w-4" />
             Import
           </Button>
@@ -55,6 +68,11 @@ export default function Contacts() {
       </div>
 
       <ContactsList />
+      <CSVImportModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        onImportComplete={handleImportComplete} 
+      />
     </div>
   );
 }
