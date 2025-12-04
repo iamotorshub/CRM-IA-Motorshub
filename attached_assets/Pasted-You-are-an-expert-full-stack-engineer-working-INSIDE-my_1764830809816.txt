@@ -1,0 +1,129 @@
+You are an expert full-stack engineer working INSIDE my existing CRM project.
+
+DO NOT modify or replace any CRM UI.
+DO NOT rewrite layout, routing, or global components.
+Implement everything SAFELY and MODULARLY.
+
+I need you to fully implement PHASE 2 — Campaign Engine v1.
+
+==============================
+PHASE 2 – TASKS TO IMPLEMENT
+==============================
+
+1) DATABASE (Drizzle ORM)
+Modify shared/schema.ts to add two tables:
+
+campaigns:
+  id serial pk
+  name text
+  status text default "draft"
+  targetSegment text default "all"
+  createdAt timestamp default now
+
+campaign_steps:
+  id serial pk
+  campaignId integer (FK campaigns.id)
+  order integer
+  subject text
+  body text
+  delayDays integer
+
+After editing, run drizzle migration (db:push).
+
+2) STORAGE METHODS (server/storage.ts)
+Add CRUD operations:
+
+Campaigns:
+  getCampaigns()
+  getCampaignById(id)
+  createCampaign(data)
+  updateCampaign(id, data)
+  deleteCampaign(id)
+
+Steps:
+  getStepsForCampaign(id)
+  createStep(data)
+  updateStep(id, data)
+  deleteStep(id)
+  reorderSteps(campaignId, steps[])
+
+3) REST API ROUTES (server/routes.ts)
+Add routes:
+
+GET /api/campaigns
+POST /api/campaigns
+GET /api/campaigns/:id
+PUT /api/campaigns/:id
+DELETE /api/campaigns/:id
+
+POST /api/campaigns/:id/steps
+PUT /api/campaigns/:id/steps/:stepId
+DELETE /api/campaigns/:id/steps/:stepId
+PATCH /api/campaigns/:id/steps/reorder
+
+4) FRONTEND – NEW PAGES & COMPONENTS
+Create:
+
+client/src/pages/Campaigns.tsx
+  - list of campaigns
+  - New Campaign button
+  - Table/cards of campaigns
+
+client/src/pages/CampaignEditor.tsx
+  - name input
+  - target segment select
+  - save button
+  - steps list on left
+  - step editor on right
+  - AI Generate button
+
+Use existing UI patterns: shadcn components, CRM style, no layout changes.
+
+5) AI INTEGRATION
+Add backend route:
+POST /api/ai/generate-campaign
+POST /api/ai/generate-step
+
+Use the existing LLM Router:
+- provider (openai/anthropic/gemini)
+- systemPrompt
+- messages[]
+
+Return:
+{
+  email_subjects: string[],
+  email_first_touch: string,
+  whatsapp_opening: string,
+  call_outline: string[]
+}
+
+6) WIRE EDITOR TO API
+- Campaign Editor loads campaign + steps
+- Allows:
+  - editing fields
+  - adding steps
+  - updating steps
+  - deleting steps
+  - reordering steps
+  - saving campaign
+  - generating content with AI
+
+==============================
+RULES
+==============================
+- DO NOT edit global layout or CRM shell.
+- DO NOT break existing components.
+- Keep new features in /crm/campaigns or /components/campaigns.
+- Use React Query for all requests.
+- Use shadcn/UI components for consistency.
+
+==============================
+WHEN DONE
+==============================
+Reply with:
+“PHASE 2 COMPLETE”
+And list:
+- files created
+- files modified
+- migrations applied
+- dependencies added
