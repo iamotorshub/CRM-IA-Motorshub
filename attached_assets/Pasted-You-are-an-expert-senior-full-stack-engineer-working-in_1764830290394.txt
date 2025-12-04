@@ -1,0 +1,104 @@
+You are an expert senior full-stack engineer working inside my existing Replit project.
+
+DO NOT restructure my project.
+DO NOT touch the CRM UI.
+DO NOT replace Vite, React, Express, or Drizzle.
+
+Your job is to implement PHASE 1 of my Lead Engine, INSIDE the existing codebase, safely and modularly.
+
+==============================
+PHASE 1 – TASKS TO IMPLEMENT
+==============================
+
+1) CREATE CONTACTS TABLE (Drizzle ORM)
+- Add a contacts table inside shared/schema.ts
+  Fields:
+    id (serial)
+    firstName text
+    lastName text
+    email text
+    phone text
+    location text
+    status text
+    source text
+    score integer
+    tags text
+    notes text
+    createdAt timestamp default now
+
+Make sure schema remains compatible with Postgres (Replit / Neon).
+Do NOT break the existing users table.
+
+After updating schema, run the equivalent migration (db:push or drizzle push).
+
+2) ADD CONTACT STORAGE METHODS (server/storage.ts)
+Add functions:
+  getContacts()
+  getContactById(id)
+  createContact(data)
+  updateContact(id, data)
+  deleteContact(id)
+  bulkCreateContacts(rows)
+
+Use drizzle-orm and eq().
+
+3) ADD REST API ROUTES (server/routes.ts)
+Create:
+  GET /api/contacts
+  GET /api/contacts/:id
+  POST /api/contacts
+  PUT /api/contacts/:id
+  DELETE /api/contacts/:id
+  POST /api/contacts/bulk
+
+Be explicit and explicit—return JSON only.
+Do not modify other routes.
+
+4) CONNECT FRONTEND (React Query)
+Inside client/src/components/crm/ContactsList.tsx:
+- Replace mock data with useQuery fetching GET /api/contacts.
+- Add a refresh button.
+- Show loading/error states.
+
+USE the existing component structure.
+DO NOT rewrite layout.
+DO NOT touch styling.
+
+5) CSV IMPORT MODAL (new component)
+Create new file:
+  client/src/components/crm/CSVImportModal.tsx
+
+Features:
+  - Upload CSV file
+  - Parse with Papa.parse
+  - Display preview table
+  - Column mapping dropdowns (map CSV columns → contact fields)
+  - Submit → POST /api/contacts/bulk
+  - Close modal after import
+  - Show toast or alert
+
+6) INTEGRATE MODAL INTO CONTACTS PAGE
+In Contacts page:
+  - Add button: “Import CSV”
+  - When clicked: open CSVImportModal
+  - After import: refetch contacts list
+
+==============================
+RULES
+==============================
+- DO NOT modify CRM design or global layout.
+- DO NOT remove mock data definitions unless replacing them with real data.
+- KEEP code modular.
+- If a file is touched, keep existing imports and components intact.
+- Ask me before making any destructive or large structural changes.
+
+==============================
+WHEN DONE
+==============================
+Reply only with:
+“PHASE 1 COMPLETE”
+And list:
+- Files created
+- Files modified
+- Any migration commands I must run
+- Any environment variable changes needed
