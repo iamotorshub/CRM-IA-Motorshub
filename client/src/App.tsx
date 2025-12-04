@@ -11,6 +11,8 @@ import Dashboard from "@/pages/Dashboard";
 import Properties from "@/pages/Properties";
 import Pipelines from "@/pages/Pipelines";
 import Contacts from "@/pages/Contacts";
+import Campaigns from "@/pages/Campaigns";
+import CampaignEditor from "@/pages/CampaignEditor";
 import AIAgents from "@/pages/AIAgents";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/crm/pipelines" component={Pipelines} />
       <Route path="/crm/contacts" component={Contacts} />
       <Route path="/crm/leads" component={Contacts} />
+      <Route path="/crm/campaigns" component={Campaigns} />
+      <Route path="/crm/campaigns/:id" component={CampaignEditor} />
       <Route path="/ai-agents" component={AIAgents} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
