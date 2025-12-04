@@ -1,4 +1,3 @@
-
 import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const contacts = pgTable("contacts", {
@@ -26,9 +25,22 @@ export const campaigns = pgTable("campaigns", {
 
 export const campaignSteps = pgTable("campaign_steps", {
   id: serial("id").primaryKey(),
-  campaignId: integer("campaign_id").references(() => campaigns.id),
-  order: integer("order"),
+  campaignId: integer("campaign_id").references(() => campaigns.id, { onDelete: "cascade" }),
+  stepOrder: integer("step_order").notNull(),
+  channel: text("channel").notNull(),
+  delayDays: integer("delay_days").default(0),
   subject: text("subject"),
   body: text("body"),
-  delayDays: integer("delay_days"),
+  status: text("status").default("draft"),
+});
+
+export const whatsappLogs = pgTable("whatsapp_logs", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+  campaignStepId: integer("campaign_step_id"),
+  direction: text("direction").default("outgoing"),
+  message: text("message"),
+  provider: text("provider").default("ultramsg"),
+  status: text("status").default("sent"),
+  createdAt: timestamp("created_at").defaultNow(),
 });

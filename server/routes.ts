@@ -2,10 +2,11 @@
 import type { Express, Request, Response } from "express";
 import type { Server as HTTPServer } from "http";
 import { db } from "../db";
-import { contacts, campaigns, campaignSteps } from "../shared/schema";
+import { contacts, campaigns, campaignSteps, whatsappLogs } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { runLLM } from "./ai/llmRouter";
 import { getAgentPrompt } from "./ai/agents/hormozi";
+import { sendWhatsAppMessage } from "./whatsapp/ultraMsgClient";
 
 export async function registerRoutes(httpServer: HTTPServer, app: Express) {
   // Contacts API
@@ -100,6 +101,118 @@ export async function registerRoutes(httpServer: HTTPServer, app: Express) {
   app.delete("/api/campaigns/:campaignId/steps/:stepId", async (req: Request, res: Response) => {
     await db.delete(campaignSteps).where(eq(campaignSteps.id, parseInt(req.params.stepId)));
     res.json({ success: true });
+  });
+
+  // WhatsApp API
+  app.post("/api/whatsapp/send", async (req: Request, res: Response) => {
+    try {
+      const { to, message } = req.body;
+      const result = await sendWhatsAppMessage({ to, body: message });
+      
+      await db.insert(whatsappLogs).values({
+        message,
+        status: result.sent ? "sent" : "failed",
+        direction: "outgoing",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/contact-send", async (req: Request, res: Response) => {
+    try {
+      const { contactId, message } = req.body;
+      
+      const contact = await db
+        .select()
+        .from(contacts)
+        .where(eq(contacts.id, contactId))
+        .limit(1);
+
+      if (!contact.length || !contact[0].phone) {
+        return res.status(400).json({ error: "Contact not found or no phone" });
+      }
+
+      const result = await sendWhatsAppMessage({ 
+        to: contact[0].phone, 
+        body: message 
+      });
+
+      await db.insert(whatsappLogs).values({
+        contactId,
+        message,
+        status: result.sent ? "sent" : "failed",
+        direction: "outgoing",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/campaign-step-send", async (req: Request, res: Response) => {
+    try {
+      const { contactId, campaignStepId } = req.body;
+      
+      const contact = await db
+        .select()
+        .from(contacts)
+        .where(eq(contacts.id, contactId))
+        .limit(1);
+
+      const step = await db
+        .select()
+        .from(campaignSteps)
+        .where(eq(campaignSteps.id, campaignStepId))
+        .limit(1);
+
+      if (!contact.length || !step.length || !contact[0].phone) {
+        return res.status(400).json({ error: "Invalid contact or step" });
+      }
+
+      const result = await sendWhatsAppMessage({ 
+        to: contact[0].phone, 
+        body: step[0].body || "" 
+      });
+
+      await db.insert(whatsappLogs).values({
+        contactId,
+        campaignStepId,
+        message: step[0].body || "",
+        status: result.sent ? "sent" : "failed",
+        direction: "outgoing",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/whatsapp/webhook", async (req: Request, res: Response) => {
+    try {
+      const { id, status } = req.body;
+      // Update log status based on webhook data
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/contacts/:id/whatsapp-logs", async (req: Request, res: Response) => {
+    try {
+      const logs = await db
+        .select()
+        .from(whatsappLogs)
+        .where(eq(whatsappLogs.contactId, parseInt(req.params.id)));
+      
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // AI Endpoints
