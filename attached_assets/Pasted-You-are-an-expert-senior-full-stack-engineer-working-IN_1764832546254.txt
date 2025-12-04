@@ -1,0 +1,158 @@
+You are an expert senior full-stack engineer working INSIDE my existing CRM project. 
+DO NOT modify global layout, CRM shell, or any existing modules.
+Implement everything modularly and safely.
+
+Your task is to implement PHASE 4 — WHATSAPP ENGINE (ULTRAMSG).
+
+===================================================
+PHASE 4 – WHATSAPP ENGINE (ULTRAMSG)
+===================================================
+
+Use these credentials (inject them into process.env):
+ULTRAMSG_API_URL=https://api.ultramsg.com/instance154188/
+ULTRAMSG_INSTANCE_ID=instance154188
+ULTRAMSG_TOKEN=69gmosmwo8sywz8g
+
+======================================
+1) DATABASE – Add new table whatsapp_logs
+======================================
+Modify shared/schema.ts:
+
+Create table whatsapp_logs:
+- id serial pk
+- contactId integer (FK contacts.id)
+- campaignStepId integer (nullable)
+- direction text default "outgoing"
+- message text
+- provider text default "ultramsg"
+- status text (sent/delivered/read/failed)
+- createdAt timestamp default now
+
+Apply migration (db:push).
+
+======================================
+2) BACKEND MODULE – UltraMsg Router
+======================================
+Create new file:
+server/whatsapp/ultraMsgClient.ts
+
+Implement:
+
+sendWhatsAppMessage({ to, body })
+→ POST `${ULTRAMSG_API_URL}messages/chat`
+→ body:
+    {
+      "token": ULTRAMSG_TOKEN,
+      "to": to,
+      "body": body
+    }
+
+Returns UltraMsg response.
+
+======================================
+3) BACKEND ROUTES – Add WhatsApp API endpoints
+======================================
+Modify server/routes.ts and add:
+
+POST /api/whatsapp/send
+  Body: { to, message }
+  Calls ultraMsgClient.sendWhatsAppMessage()
+  Logs entry in whatsapp_logs
+  Returns JSON
+
+POST /api/whatsapp/contact-send
+  Body: { contactId, message }
+  Lookup contact by ID → get phone
+  Send WhatsApp
+  Log to whatsapp_logs
+
+POST /api/whatsapp/campaign-step-send
+  Body: { contactId, campaignStepId }
+  Load campaign step → get body
+  Send message
+  Log entry
+
+POST /api/whatsapp/webhook
+  UltraMsg status callback
+  Update whatsapp_logs status (delivered/read)
+
+======================================
+4) UI – Contact Page “Send WhatsApp”
+======================================
+Create new component:
+client/src/components/crm/SendWhatsAppModal.tsx
+
+Features:
+- Input: message (textarea)
+- Preview
+- AI Generate button:
+    Calls POST /api/ai/chat with:
+    provider, systemPrompt="You generate WhatsApp outreach messages", user text
+- Button “Send”
+  Calls /api/whatsapp/contact-send
+
+Integrate into ContactsList:
+- Add button on each row: “Send WhatsApp”
+- Opens modal with that contact selected
+
+======================================
+5) UI – Campaign Editor “Send Test WhatsApp”
+======================================
+Modify client/src/pages/CampaignEditor.tsx
+
+For each step:
+- Add button “Send Test WhatsApp”
+- Opens a simple modal:
+    - Input test phone
+    - Preview message
+    - Send → POST /api/whatsapp/send
+
+======================================
+6) UI – Logs inside Contact Details
+======================================
+Create:
+client/src/components/crm/WhatsAppLogs.tsx
+
+- Fetch logs via GET /api/contacts/:id/whatsapp-logs
+- Show table:
+  - Date
+  - Message
+  - Status
+  - CampaignStepId (optional)
+
+Modify backend:
+GET /api/contacts/:id/whatsapp-logs
+
+======================================
+7) INTEGRATION WITH AI ENGINE
+======================================
+AI Generate button inside SendWhatsAppModal:
+- Calls /api/ai/chat
+- Provide concise systemPrompt:
+  “You generate short WhatsApp outreach messages. Format: max 2 lines, punchy, direct, no emojis unless strategic.”
+
+Return message → fill textarea.
+
+======================================
+RULES
+======================================
+- DO NOT modify unrelated modules.
+- DO NOT break routing or layout.
+- Put new WhatsApp modules under:
+    server/whatsapp/
+    client/src/components/crm/
+- Use React Query for all fetch calls.
+- All responses must be JSON only.
+
+======================================
+WHEN COMPLETE
+======================================
+Reply only with:
+
+“PHASE 4 COMPLETE”
+
+And list:
+- Files created
+- Files modified
+- New routes added
+- Migrations applied
