@@ -1,0 +1,141 @@
+You are an expert senior full-stack engineer working INSIDE my existing CRM project.
+
+DO NOT modify the CRM layout, styling, AppShell, or global components.
+DO NOT rewrite any page.
+DO NOT touch the existing Campaign Engine or Contact pages except to ADD features cleanly.
+
+Your task is to implement PHASE 3 — LLM ROUTER + AI ENGINE.
+
+=========================================
+PHASE 3 – TASKS TO IMPLEMENT
+=========================================
+
+1) CORE LLM ROUTER MODULE
+Create a new file:
+  server/ai/llmRouter.ts
+
+Implement a router that supports 3 providers:
+- openai
+- anthropic
+- gemini
+
+Functions:
+  runLLM({ provider, systemPrompt, messages }): Promise<{ reply, model }>
+
+Use env vars:
+  process.env.OPENAI_API_KEY
+  process.env.ANTHROPIC_API_KEY
+  process.env.GEMINI_API_KEY
+
+Do NOT hardcode models.
+Default models:
+  openai: gpt-4.1
+  anthropic: claude-3-5-sonnet
+  gemini: gemini-1.5-pro
+
+Return data as JSON only.
+
+2) AI BACKEND ROUTES
+Modify server/routes.ts to add:
+
+POST /api/ai/chat
+- Accepts: { provider, systemPrompt, messages }
+- Calls runLLM()
+- Returns JSON
+
+POST /api/ai/generate-campaign
+- Accepts: { provider, segmentDescription, mainOffer, tone }
+- Use runLLM() with a system prompt that creates:
+    { email_subjects, email_first_touch, whatsapp_opening, call_outline }
+
+POST /api/ai/generate-step
+- Accepts: { provider, subjectInstruction, bodyInstruction, tone }
+- Returns: { subject, body }
+
+POST /api/ai/enrich-contact
+- Accepts: { provider, contact }
+- Returns enriched fields: 
+    { score, status, notes, tags }
+
+3) AI PROVIDER SETTINGS UI
+Create:
+  client/src/pages/AISettings.tsx
+
+Features:
+- Dropdown to select provider (openai/anthropic/gemini)
+- Input fields for model override (optional)
+- Save settings to localStorage or global state (no backend needed yet)
+- Reuse shadcn components
+
+Add route in App.tsx:
+  /settings/ai → <AISettings />
+
+4) INTEGRATION IN CAMPAIGN EDITOR
+Modify client/src/pages/CampaignEditor.tsx:
+
+- Add "Generate with AI" button in campaign header:
+    Opens a dialog where user selects:
+      - provider
+      - tone
+      - main offer
+      - segment description
+    Clicking "Generate" calls POST /api/ai/generate-campaign
+    Fills steps automatically with the returned content.
+
+- Add "AI Generate Step" button inside Step Editor
+    Calls /api/ai/generate-step
+
+5) CONTACT ENRICHMENT (LEAD ENGINE UPGRADE)
+Modify ContactsList or create:
+  client/src/components/crm/EnrichContactButton.tsx
+
+Features:
+- Button: "Enrich with AI"
+- Calls /api/ai/enrich-contact
+- Updates that contact via PUT /api/contacts/:id
+
+6) SCORING IMPROVEMENTS
+Inside enrich-contact endpoint:
+- Use LLM to classify lead into:
+    hot / warm / cold
+- Use reasoning from AI to produce notes
+- Score: 1—100 returned by AI
+
+7) AGENT STYLES (SYSTEM PROMPTS)
+Create folder:
+  server/ai/agents/
+Add these files:
+
+hormozi.ts    // aggressive direct response
+closer.ts     // objection handling expert
+hooks.ts      // viral hooks, pattern interrupts
+realestate.ts // realtor outreach specialist
+
+Each exports a systemPrompt string.
+
+Modify generate-campaign endpoint:
+- Accept agentStyle field
+- Use the corresponding system prompt
+
+=========================================
+RULES
+=========================================
+- DO NOT break existing CRM pages.
+- DO NOT rename files.
+- Keep AI modules isolated inside server/ai/.
+- All API responses must be JSON.
+- Use React Query to fetch new AI endpoints.
+- Use shadcn components for modals, buttons, inputs.
+
+=========================================
+WHEN FINISHED
+=========================================
+Reply with:
+
+“PHASE 3 COMPLETE”
+
+And list:
+- Files created
+- Files modified
+- New routes
+- Any required environment variables
