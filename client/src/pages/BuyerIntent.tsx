@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
@@ -210,6 +209,7 @@ export default function BuyerIntent() {
                 </div>
               </div>
             </CardHeader>
+
             <CardContent>
               <Tabs defaultValue="overview">
                 <TabsList>
@@ -217,6 +217,8 @@ export default function BuyerIntent() {
                   <TabsTrigger value="signals" data-testid="tab-signals">Signals</TabsTrigger>
                   <TabsTrigger value="insights" data-testid="tab-insights">AI Insights</TabsTrigger>
                 </TabsList>
+
+                {/* ------------------ OVERVIEW ------------------ */}
 
                 <TabsContent value="overview" className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -250,7 +252,7 @@ export default function BuyerIntent() {
                           Social Links
                         </div>
                       </div>
-                      
+
                       {selectedScan.crawlerResult.technology.length > 0 && (
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium">Technologies</h4>
@@ -272,6 +274,8 @@ export default function BuyerIntent() {
                     <p className="text-sm text-muted-foreground">{selectedScan.scoring.recommendation}</p>
                   </div>
                 </TabsContent>
+
+                {/* ------------------ SIGNALS ------------------ */}
 
                 <TabsContent value="signals" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,58 +303,90 @@ export default function BuyerIntent() {
                   </div>
                 </TabsContent>
 
+                {/* ------------------ AI INSIGHTS ------------------ */}
+
                 <TabsContent value="insights" className="space-y-6">
+
                   <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                     <h3 className="font-semibold mb-2">Summary</h3>
-                    <p className="text-sm">{selectedScan.insights.summary}</p>
+                    <p className="text-sm">
+                      {selectedScan?.insights?.summary || "No summary available."}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    {/* ---------- Strengths ---------- */}
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm text-green-600">Strengths</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="text-sm space-y-1">
-                          {selectedScan.insights.strengths.map((s, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-green-500 mt-1">+</span> {s}
+                          {Array.isArray(selectedScan?.insights?.strengths) &&
+                          selectedScan.insights.strengths.length > 0 ? (
+                            selectedScan.insights.strengths.map((s, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-green-500 mt-1">+</span> {s}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground text-sm">
+                              No strengths detected.
                             </li>
-                          ))}
+                          )}
                         </ul>
                       </CardContent>
                     </Card>
 
+                    {/* ---------- Weaknesses ---------- */}
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm text-red-600">Weaknesses</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="text-sm space-y-1">
-                          {selectedScan.insights.weaknesses.map((w, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-red-500 mt-1">-</span> {w}
+                          {Array.isArray(selectedScan?.insights?.weaknesses) &&
+                          selectedScan.insights.weaknesses.length > 0 ? (
+                            selectedScan.insights.weaknesses.map((w, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-red-500 mt-1">-</span> {w}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground text-sm">
+                              No weaknesses found.
                             </li>
-                          ))}
+                          )}
                         </ul>
                       </CardContent>
                     </Card>
 
+                    {/* ---------- Opportunities ---------- */}
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm text-blue-600">Opportunities</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="text-sm space-y-1">
-                          {selectedScan.insights.opportunities.map((o, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-blue-500 mt-1">*</span> {o}
+                          {Array.isArray(selectedScan?.insights?.opportunities) &&
+                          selectedScan.insights.opportunities.length > 0 ? (
+                            selectedScan.insights.opportunities.map((o, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-blue-500 mt-1">*</span> {o}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-muted-foreground text-sm">
+                              No opportunities identified.
                             </li>
-                          ))}
+                          )}
                         </ul>
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Recommended Approach + Estimated Value */}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
@@ -358,7 +394,10 @@ export default function BuyerIntent() {
                         <CardTitle className="text-sm">Recommended Approach</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground">{selectedScan.insights.recommendedApproach}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedScan?.insights?.recommendedApproach ||
+                           "No recommended approach available."}
+                        </p>
                       </CardContent>
                     </Card>
 
@@ -367,11 +406,15 @@ export default function BuyerIntent() {
                         <CardTitle className="text-sm">Estimated Value</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-2xl font-bold text-primary">{selectedScan.insights.estimatedValue}</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {selectedScan?.insights?.estimatedValue || "$0"}
+                        </p>
                         <p className="text-xs text-muted-foreground">Monthly recurring revenue potential</p>
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* ---------- Talking Points ---------- */}
 
                   <Card>
                     <CardHeader className="pb-2">
@@ -379,23 +422,33 @@ export default function BuyerIntent() {
                     </CardHeader>
                     <CardContent>
                       <ul className="text-sm space-y-2">
-                        {selectedScan.insights.talkingPoints.map((point, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs shrink-0">
-                              {i + 1}
-                            </span>
-                            {point}
+                        {Array.isArray(selectedScan?.insights?.talkingPoints) &&
+                        selectedScan.insights.talkingPoints.length > 0 ? (
+                          selectedScan.insights.talkingPoints.map((point, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs shrink-0">
+                                {i + 1}
+                              </span>
+                              {point}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-muted-foreground text-sm">
+                            No talking points available.
                           </li>
-                        ))}
+                        )}
                       </ul>
                     </CardContent>
                   </Card>
+
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
         </motion.div>
       )}
+
+      {/* ------------------ RECENT SCANS ------------------ */}
 
       <Card>
         <CardHeader>
