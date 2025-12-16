@@ -1,0 +1,74 @@
+You are a senior full-stack TypeScript engineer and software architect.
+
+You are inside my project **CRM-IA-Motorshub / Aura CRM** running on Replit.
+
+I just ran the dev script and got:
+- `rest-express@1.0.0 dev`
+- `[express] serving on port 5000`
+- A PostCSS warning, but the server is running.
+
+====================================================
+YOUR JOB IN THIS PASS
+====================================================
+
+1) ANALYZE THE PROJECT STRUCTURE
+   - Scan the repo and tell me:
+     - What stack is used on the frontend (React? Vite? Tailwind?).
+     - What stack is used on the backend (Express? any ORM?).
+     - What the main entrypoints are (server index, main React file, etc.).
+   - Identify existing domain entities related to:
+     - contacts / leads
+     - campaigns
+     - properties / real estate (if any)
+
+   Return a structured summary with:
+   - frontend_stack
+   - backend_stack
+   - database_or_persistence
+   - important_modules
+   - routing_and_layout
+   - current_domain_entities
+   - rough_mental_model (1–2 paragraphs explaining how the app currently works end-to-end).
+
+2) RUN / DEV INSTRUCTIONS
+   - Confirm which commands are used to:
+     - Install dependencies.
+     - Start the dev server(s).
+   - List any required environment variables by NAME only (e.g. DATABASE_URL, OPENAI_API_KEY, etc.) and where they should live (.env, .env.local).
+   - Explain how, in Replit, I should run the app and what URL/path to open in the browser.
+
+3) GAP ANALYSIS FOR MY GOALS
+   My main goals for this project are:
+   - Lead Engine:
+     - Import leads from CSV/Excel into a normalized contacts model.
+     - Prepare for lead scoring and segmentation.
+   - Campaign Engine (Email first, WhatsApp second):
+     - Create campaigns and steps.
+     - Store subject + body templates.
+     - Later, generate copy with AI.
+
+   Based on the current code, tell me:
+   - What already exists that relates to leads / contacts / campaigns.
+   - What is still missing for:
+     - v1 Lead Engine.
+     - v1 Campaign Engine (email only).
+
+   Return:
+   - existing_features
+   - missing_pieces_for_lead_engine
+   - missing_pieces_for_campaign_engine
+
+4) PROPOSE A 3-PHASE IMPLEMENTATION PLAN (NO CODE YET)
+   - Phase 1: Make Lead Engine v1 real (CSV import + contacts view).
+   - Phase 2: Campaign Builder v1 (email).
+   - Phase 3: AI hooks for generating email copy (no provider hardcoded).
+
+   For each phase, give:
+   - 4–7 bullet points of concrete tasks.
+   - Files likely to be touched.
+   - “Done when…” simple criteria.
+
+IMPORTANT:
+- Do NOT modify any files yet.
+- First, just analyze and return the summary + plan.
+- Keep responses concise but rich and actionable.
